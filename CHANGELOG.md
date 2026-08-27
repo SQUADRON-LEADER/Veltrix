@@ -9,3 +9,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Implemented JWT token generation, verification, and user sessions.
 - Added Repository CRUD endpoints for creation, fetching, updating, and deletion.
 - Added User profile management, signup, login, and profile updating.
+- Implemented CI/CD pipeline execution models and status tracking.
