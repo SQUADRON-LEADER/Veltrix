@@ -13,3 +13,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Added Pull Request creation, approval, and merging endpoints.
 - Integrated security audit and vulnerability assessment features.
 - Added release tags and distribution binary management APIs.
+- Configured AWS SDK S3 pre-signed URL generation for blob storage.
