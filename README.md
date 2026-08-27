@@ -1,4 +1,4 @@
-# Veltrix
+# Veltrix — Cloud-Native Collaboration Platform
 
 **Veltrix** is an enterprise-grade, DevOps-centric **Version Control System** and real-time collaboration platform. Inspired by industry-standard tools (like GitHub/GitLab), it is designed to manage repositories, track code changes, and facilitate seamless developer collaboration.
 
