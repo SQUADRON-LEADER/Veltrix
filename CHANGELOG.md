@@ -14,3 +14,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Integrated security audit and vulnerability assessment features.
 - Added release tags and distribution binary management APIs.
 - Configured AWS SDK S3 pre-signed URL generation for blob storage.
+- Initialized React 18 frontend with Vite build tooling.
