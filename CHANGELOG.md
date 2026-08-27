@@ -12,3 +12,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Implemented CI/CD pipeline execution models and status tracking.
 - Added Pull Request creation, approval, and merging endpoints.
 - Integrated security audit and vulnerability assessment features.
+- Added release tags and distribution binary management APIs.
