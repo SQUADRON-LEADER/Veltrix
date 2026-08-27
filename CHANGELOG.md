@@ -11,3 +11,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Added User profile management, signup, login, and profile updating.
 - Implemented CI/CD pipeline execution models and status tracking.
 - Added Pull Request creation, approval, and merging endpoints.
+- Integrated security audit and vulnerability assessment features.
