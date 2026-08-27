@@ -17,3 +17,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Initialized React 18 frontend with Vite build tooling.
 - Designed modern GitHub-inspired dark theme UI design system.
 - Implemented Dashboard repository feed and statistics cards.
+- Added New Repository creation form with owner resolution.
