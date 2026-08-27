@@ -18,3 +18,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Designed modern GitHub-inspired dark theme UI design system.
 - Implemented Dashboard repository feed and statistics cards.
 - Added New Repository creation form with owner resolution.
+- Implemented Repository detail tabs for Code, Issues, PRs, and Actions.
