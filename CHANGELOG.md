@@ -21,3 +21,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Implemented Repository detail tabs for Code, Issues, PRs, and Actions.
 - Created interactive tabs for CI/CD pipelines and pull requests.
 - Added User Profile view with contribution activity heatmap.
+- Added production Dockerfile and Docker Compose deployment manifests.
