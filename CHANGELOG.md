@@ -7,3 +7,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Initialized Veltrix DevOps platform architecture.
 - Integrated MongoDB Atlas database connection with Mongoose models.
 - Implemented JWT token generation, verification, and user sessions.
+- Added Repository CRUD endpoints for creation, fetching, updating, and deletion.
