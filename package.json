@@ -1,0 +1,10 @@
+{
+  "name": "veltrix-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend start",
+    "dev:frontend": "npm --prefix frontend/vite-project run dev",
+    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix-colors \"green.bold,cyan.bold\""
+  }
+}

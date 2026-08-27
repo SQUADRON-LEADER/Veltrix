@@ -1,0 +1,416 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* ─── GitHub Dark Design Tokens ─────────────────────────────── */
+:root {
+  --gh-bg:          #0d1117;
+  --gh-canvas:      #161b22;
+  --gh-surface:     #21262d;
+  --gh-border:      #30363d;
+  --gh-border-muted:#21262d;
+  --gh-text:        #e6edf3;
+  --gh-text-muted:  #8b949e;
+  --gh-text-subtle: #6e7681;
+  --gh-accent:      #238636;
+  --gh-accent-hover:#2ea043;
+  --gh-accent-muted:#033a16;
+  --gh-link:        #58a6ff;
+  --gh-link-hover:  #79c0ff;
+  --gh-danger:      #f85149;
+  --gh-danger-muted:#490202;
+  --gh-warning:     #e3b341;
+  --gh-purple:      #bc8cff;
+  --gh-header-bg:   #161b22;
+}
+
+/* ─── Base ───────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--gh-bg);
+  color: var(--gh-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: rgba(56, 139, 253, 0.4);
+  color: var(--gh-text);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--gh-bg); }
+::-webkit-scrollbar-thumb { background: var(--gh-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* ─── Surface / Panel Classes ────────────────────────────────── */
+.gh-canvas {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+}
+
+.gh-surface {
+  background: var(--gh-surface);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+}
+
+.gh-card {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 1rem;
+  transition: border-color 0.2s;
+}
+
+.gh-card:hover {
+  border-color: #484f58;
+}
+
+/* ─── Button Styles ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary — green */
+.btn-primary {
+  background-color: var(--gh-accent);
+  border-color: rgba(240, 246, 252, 0.1);
+  color: #ffffff;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--gh-accent-hover);
+}
+.btn-primary:active:not(:disabled) {
+  background-color: #238636;
+  box-shadow: inset 0 1px 0 rgba(20, 70, 32, 0.2);
+}
+
+/* Secondary / Default */
+.btn-secondary {
+  background-color: var(--gh-surface);
+  border-color: var(--gh-border);
+  color: var(--gh-text);
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: #30363d;
+  border-color: #8b949e;
+}
+
+/* Danger */
+.btn-danger {
+  background-color: #da3633;
+  border-color: rgba(240, 246, 252, 0.1);
+  color: #ffffff;
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: #b62324;
+}
+
+/* Ghost / Link-style */
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--gh-link);
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(56, 139, 253, 0.1);
+  border-color: transparent;
+}
+
+/* Outline */
+.btn-outline {
+  background: transparent;
+  border-color: var(--gh-border);
+  color: var(--gh-text);
+}
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--gh-surface);
+}
+
+/* ─── Input Styles ───────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 5px 12px;
+  background-color: var(--gh-bg);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  color: var(--gh-text);
+  font-size: 14px;
+  line-height: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input::placeholder {
+  color: var(--gh-text-subtle);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--gh-link);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
+}
+
+.input-error {
+  border-color: var(--gh-danger);
+}
+
+.input-error:focus {
+  border-color: var(--gh-danger);
+  box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.3);
+}
+
+/* Legacy compatibility */
+.card {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 1rem;
+  transition: border-color 0.2s;
+}
+
+.card-hover {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 1rem;
+  transition: border-color 0.2s, background-color 0.2s;
+  cursor: pointer;
+}
+
+.card-hover:hover {
+  background: var(--gh-surface);
+  border-color: #484f58;
+}
+
+/* Liquid glass legacy compat */
+.liquid-glass {
+  background: var(--gh-surface);
+  border: 1px solid var(--gh-border);
+}
+
+.liquid-glass-strong {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+}
+
+/* ─── Badge / Label Styles ───────────────────────────────────── */
+.gh-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  border-radius: 2em;
+  border: 1px solid transparent;
+}
+
+.gh-badge-green {
+  background: rgba(35, 134, 54, 0.15);
+  border-color: rgba(35, 134, 54, 0.4);
+  color: #3fb950;
+}
+
+.gh-badge-red {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #f85149;
+}
+
+.gh-badge-gray {
+  background: var(--gh-surface);
+  border-color: var(--gh-border);
+  color: var(--gh-text-muted);
+}
+
+.gh-badge-blue {
+  background: rgba(56, 139, 253, 0.15);
+  border-color: rgba(56, 139, 253, 0.4);
+  color: #58a6ff;
+}
+
+/* ─── Tab Navigation ─────────────────────────────────────────── */
+.gh-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gh-text-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.gh-tab:hover {
+  color: var(--gh-text);
+  border-bottom-color: var(--gh-border);
+}
+
+.gh-tab.active {
+  color: var(--gh-text);
+  border-bottom-color: #f78166;
+}
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.gh-divider {
+  border: none;
+  border-top: 1px solid var(--gh-border);
+  margin: 0;
+}
+
+/* ─── Link Colors ────────────────────────────────────────────── */
+a.gh-link {
+  color: var(--gh-link);
+  text-decoration: none;
+}
+a.gh-link:hover {
+  color: var(--gh-link-hover);
+  text-decoration: underline;
+}
+
+/* ─── Avatar ─────────────────────────────────────────────────── */
+.gh-avatar {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #238636, #1f6feb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* ─── Contribution Grid ──────────────────────────────────────── */
+.contrib-0 { background: #161b22; }
+.contrib-1 { background: #0e4429; }
+.contrib-2 { background: #006d32; }
+.contrib-3 { background: #26a641; }
+.contrib-4 { background: #39d353; }
+
+/* ─── Code Block ─────────────────────────────────────────────── */
+.gh-code {
+  background: var(--gh-canvas);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 16px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--gh-text);
+  overflow: auto;
+}
+
+/* ─── Spinner ────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  border: 2px solid var(--gh-border);
+  border-top-color: var(--gh-link);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Utility Overrides for GitHub feel ─────────────────────── */
+.text-primary { color: var(--gh-link); }
+.text-primary-light { color: var(--gh-link-hover); }
+.bg-primary { background-color: var(--gh-accent); }
+.bg-primary-dark { background-color: #196c2e; }
+.from-primary { --tw-gradient-from: var(--gh-accent); }
+.to-primary-dark { --tw-gradient-to: #196c2e; }
+.border-primary { border-color: var(--gh-accent); }
+.hover\:text-primary:hover { color: var(--gh-link); }
+.hover\:text-primary-light:hover { color: var(--gh-link-hover); }
+.focus\:border-primary:focus { border-color: var(--gh-link); }
+.focus\:ring-primary:focus { --tw-ring-color: rgba(31, 111, 235, 0.3); }
+
+/* ─── Hacker Green & GitHub Dark Theme Utilities ─────────────────── */
+:root {
+  --hacker-green: #00ff66;
+  --gh-green-bright: #3fb950;
+  --gh-green-main: #238636;
+  --gh-green-hover: #2ea043;
+  --gh-green-bg: rgba(35, 134, 54, 0.15);
+  --gh-black-void: #010409;
+  --gh-dark-canvas: #0d1117;
+  --gh-dark-surface: #161b22;
+  --gh-dark-elevated: #21262d;
+}
+
+.text-hacker-green {
+  color: var(--hacker-green);
+}
+
+.text-gh-green {
+  color: var(--gh-green-bright);
+}
+
+.bg-hacker-glow {
+  box-shadow: 0 0 25px rgba(0, 255, 102, 0.15);
+}
+
+.bg-green-glow {
+  box-shadow: 0 0 30px rgba(35, 134, 54, 0.25);
+}
+
+.border-gh-green {
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.hacker-terminal {
+  background: var(--gh-black-void);
+  border: 1px solid var(--gh-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 1px rgba(0, 255, 102, 0.2);
+}
+
+.hacker-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(48, 54, 61, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(48, 54, 61, 0.25) 1px, transparent 1px);
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+

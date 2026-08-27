@@ -1,0 +1,28 @@
+# Environment variables & secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# Node dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build & output directories
+dist/
+build/
+out/
+coverage/
+
+# Local CLI data & temporary files
+.veltrix/
+**/.veltrix/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

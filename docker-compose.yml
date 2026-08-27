@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: veltrix-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: veltrix
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - veltrix-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache for Socket.io & Query Caching
+  redis:
+    image: redis:7-alpine
+    container_name: veltrix-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - veltrix-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Express API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: veltrix-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongodb:27017/veltrix
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: veltrix_super_secret_jwt_key_dev_2026
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET_NAME: veltrix-dev-bucket
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - veltrix-net
+
+  # Frontend React / Nginx Service
+  frontend:
+    build:
+      context: ./frontend/vite-project
+      dockerfile: Dockerfile
+    container_name: veltrix-frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - veltrix-net
+
+networks:
+  veltrix-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:
