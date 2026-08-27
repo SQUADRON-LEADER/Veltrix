@@ -20,3 +20,4 @@ All notable changes to the Veltrix platform will be documented in this file.
 - Added New Repository creation form with owner resolution.
 - Implemented Repository detail tabs for Code, Issues, PRs, and Actions.
 - Created interactive tabs for CI/CD pipelines and pull requests.
+- Added User Profile view with contribution activity heatmap.
