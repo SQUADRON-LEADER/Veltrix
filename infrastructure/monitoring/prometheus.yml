@@ -1,0 +1,50 @@
+# =============================================================================
+# Veltrix — Prometheus Configuration Specification
+# Author: Aayush | Module 4: Monitoring & Observability
+# Scrapes metrics from: Node Exporter targets, Jenkins CI, and Backend API
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'
+
+rule_files:
+  - 'alertmanager.yml'
+
+scrape_configs:
+  # ── Prometheus self-monitoring ─────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── Node Exporter: Monitors hardware & OS metrics for all 8 EC2 nodes ──────
+  - job_name: 'ec2-node-exporter'
+    static_configs:
+      - targets:
+          - '10.0.1.10:9100'  # Jenkins Master
+          - '10.0.1.11:9100'  # Jenkins Agent
+          - '10.0.1.12:9100'  # SonarQube Server
+          - '10.0.2.10:9100'  # K8s Master
+          - '10.0.2.11:9100'  # K8s Worker 1
+          - '10.0.2.12:9100'  # K8s Worker 2
+          - '10.0.1.20:9100'  # Prometheus + Grafana Server
+          - '10.0.1.5:9100'   # Bastion Host
+
+  # ── Jenkins Metrics ────────────────────────────────────────────────────────
+  - job_name: 'jenkins'
+    metrics_path: '/prometheus/'
+    static_configs:
+      - targets: ['10.0.1.10:8080']
+
+  # ── Veltrix Backend API Health Metrics ─────────────────────────────────────
+  - job_name: 'veltrix-backend'
+    metrics_path: '/health'
+    static_configs:
+      - targets: ['10.0.2.11:5000', '10.0.2.12:5000']
