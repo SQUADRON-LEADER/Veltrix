@@ -27,6 +27,10 @@ mainRouter.get("/", (req, res) => {
   res.send("Welcome to Veltrix API!");
 });
 
+mainRouter.get("/health", (req, res) => {
+  res.status(200).json({ status: "UP", timestamp: new Date().toISOString() });
+});
+
 mainRouter.get("/aws/status", async (req, res) => {
   try {
     const data = await s3.listObjectsV2({ Bucket: S3_BUCKET, MaxKeys: 5 }).promise();

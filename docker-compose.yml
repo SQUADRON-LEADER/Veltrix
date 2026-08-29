@@ -1,7 +1,13 @@
+# =============================================================================
+# Veltrix — Local Development Docker Compose Specification
+# Author: Aayush | Module 1: Docker & Containerization
+# Orchestrates: MongoDB + Redis + Backend API + Frontend React/Nginx
+# =============================================================================
+
 version: '3.8'
 
 services:
-  # MongoDB Database
+  # ── 1. MongoDB Service ──────────────────────────────────────────────────────
   mongodb:
     image: mongo:6.0
     container_name: veltrix-mongodb
@@ -19,8 +25,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  # Redis Cache for Socket.io & Query Caching
+  # ── 2. Redis Service (Socket.io Adapter & Query Cache) ──────────────────────
   redis:
     image: redis:7-alpine
     container_name: veltrix-redis
@@ -36,8 +43,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
 
-  # Backend Express API Service
+  # ── 3. Backend Node.js / Express API Service ─────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -61,20 +69,36 @@ services:
         condition: service_healthy
     networks:
       - veltrix-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
-  # Frontend React / Nginx Service
+  # ── 4. Frontend React / Nginx Service ───────────────────────────────────────
   frontend:
     build:
       context: ./frontend/vite-project
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:5000/api
+        VITE_SOCKET_URL: http://localhost:5000
     container_name: veltrix-frontend
     restart: always
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - veltrix-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   veltrix-net:
@@ -82,4 +106,6 @@ networks:
 
 volumes:
   mongo_data:
+    driver: local
   redis_data:
+    driver: local

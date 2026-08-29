@@ -1,3 +1,9 @@
+# =============================================================================
+# Veltrix — Production Staging Docker Compose Specification
+# Author: Aayush | Module 1: Docker & Containerization
+# Used for pre-deployment staging verification and ECR testing
+# =============================================================================
+
 version: '3.8'
 
 services:
@@ -12,23 +18,28 @@ services:
     environment:
       PORT: 5000
       NODE_ENV: production
-      MONGODB_URI: ${MONGODB_URI}
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      AWS_REGION: ${AWS_REGION}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/veltrix}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-veltrix_prod_secret_jwt_2026}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-veltrix-prod-bucket}
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - veltrix-prod-net
 
   frontend:
     build:
       context: ./frontend/vite-project
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:5000}
     container_name: veltrix-prod-frontend
     restart: unless-stopped
     ports:
@@ -40,3 +51,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - veltrix-prod-net
+
+networks:
+  veltrix-prod-net:
+    driver: bridge
