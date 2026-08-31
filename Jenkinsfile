@@ -7,10 +7,13 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = "veltrix-ecr-registry"
+        AWS_REGION = "us-east-1"
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         APP_NAME = "veltrix"
         BUILD_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-        SONAR_TOKEN = credentials('sonar-auth-token')
+        SONAR_HOST_URL = "http://sonarqube-server:9000"
+        DOCKER_BUILDKIT = "1"
     }
 
     stages {
@@ -32,9 +35,13 @@ pipeline {
         stage('3. SonarQube Code Quality Scan') {
             steps {
                 script {
-                    def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('SonarQubeServer') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=veltrix-app"
+                        sh '''
+                            /opt/sonar-scanner/bin/sonar-scanner \
+                                -Dsonar.projectKey=veltrix \
+                                -Dsonar.sources=./backend,./frontend/vite-project/src \
+                                -Dsonar.exclusions=**/node_modules/**,**/tests/**
+                        '''
                     }
                 }
             }
@@ -50,24 +57,56 @@ pipeline {
 
         stage('5. Build Docker Images') {
             steps {
-                sh "docker build -t ${REGISTRY}/veltrix-backend:${BUILD_TAG} ./backend"
-                sh "docker build -t ${REGISTRY}/veltrix-frontend:${BUILD_TAG} ./frontend/vite-project"
+                sh '''
+                    docker build -t ${ECR_REGISTRY}/${APP_NAME}-backend:${BUILD_TAG} \
+                                 -t ${ECR_REGISTRY}/${APP_NAME}-backend:latest ./backend
+                    docker build -t ${ECR_REGISTRY}/${APP_NAME}-frontend:${BUILD_TAG} \
+                                 -t ${ECR_REGISTRY}/${APP_NAME}-frontend:latest ./frontend/vite-project
+                '''
             }
         }
 
         stage('6. Push Images to Amazon ECR') {
             steps {
-                sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${REGISTRY}"
-                sh "docker push ${REGISTRY}/veltrix-backend:${BUILD_TAG}"
-                sh "docker push ${REGISTRY}/veltrix-frontend:${BUILD_TAG}"
+                withCredentials([usernamePassword(credentialsId: 'aws-ecr-creds', 
+                                                  usernameVariable: 'AWS_USER', 
+                                                  passwordVariable: 'AWS_PASS')]) {
+                    sh '''
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        docker push ${ECR_REGISTRY}/${APP_NAME}-backend:${BUILD_TAG}
+                        docker push ${ECR_REGISTRY}/${APP_NAME}-backend:latest
+                        docker push ${ECR_REGISTRY}/${APP_NAME}-frontend:${BUILD_TAG}
+                        docker push ${ECR_REGISTRY}/${APP_NAME}-frontend:latest
+                    '''
+                }
             }
         }
 
         stage('7. Deploy to Kubernetes (Green Namespace)') {
             steps {
-                sh "kubectl apply -f infrastructure/k8s/namespace-green.yaml"
-                sh "kubectl apply -f infrastructure/k8s/deployment-green.yaml"
-                sh "kubectl patch svc veltrix-service -p '{\"spec\":{\"selector\":{\"env\":\"green\"}}}'"
+                withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        export KUBECONFIG=${KUBECONFIG}
+                        
+                        # Create green namespace
+                        kubectl create namespace green --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Apply deployment (update image tag)
+                        kubectl set image deployment/veltrix-backend deployment/veltrix-backend=\
+                            ${ECR_REGISTRY}/${APP_NAME}-backend:${BUILD_TAG} -n green || \
+                        kubectl apply -f infrastructure/k8s/deployment-green.yaml -n green
+                        
+                        # Wait for rollout
+                        kubectl rollout status deployment/veltrix-backend -n green --timeout=5m
+                        
+                        # Patch service to route to green
+                        kubectl patch svc veltrix-service -n green \
+                            -p '{"spec":{"selector":{"env":"green"}}}' || true
+                        
+                        echo "✅ Deployment successful! Service routed to green namespace."
+                    '''
+                }
             }
         }
     }

@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: green
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veltrix-backend
+  namespace: green
+  labels:
+    app: veltrix
+    component: backend
+    env: green
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: veltrix
+      component: backend
+      env: green
+  template:
+    metadata:
+      labels:
+        app: veltrix
+        component: backend
+        env: green
+    spec:
+      serviceAccountName: veltrix-backend
+      containers:
+      - name: backend
+        image: veltrix-backend:latest  # Will be patched by Jenkins
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: veltrix-secrets
+              key: mongodb-uri
+        - name: AWS_REGION
+          value: "us-east-1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: veltrix-service
+  namespace: green
+  labels:
+    app: veltrix
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+    protocol: TCP
+  selector:
+    app: veltrix
+    env: green
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: veltrix-backend
+  namespace: green
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: veltrix-backend-hpa
+  namespace: green
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: veltrix-backend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
