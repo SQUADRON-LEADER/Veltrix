@@ -9,6 +9,14 @@ const releaseRouter = require("./release.router");
 
 const mainRouter = express.Router();
 
+mainRouter.get("/", (req, res) => {
+  res.send("Welcome to Veltrix API!");
+});
+
+mainRouter.get("/health", (req, res) => {
+  res.status(200).json({ status: "UP", timestamp: new Date().toISOString() });
+});
+
 mainRouter.use("/users", userRouter);
 mainRouter.use("/repos", repoRouter);
 mainRouter.use("/issues", issueRouter);
@@ -22,14 +30,6 @@ mainRouter.use(repoRouter);
 mainRouter.use(issueRouter);
 
 const { s3, S3_BUCKET } = require("../config/aws-config");
-
-mainRouter.get("/", (req, res) => {
-  res.send("Welcome to Veltrix API!");
-});
-
-mainRouter.get("/health", (req, res) => {
-  res.status(200).json({ status: "UP", timestamp: new Date().toISOString() });
-});
 
 mainRouter.get("/aws/status", async (req, res) => {
   try {
