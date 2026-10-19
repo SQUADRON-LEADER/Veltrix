@@ -4,25 +4,28 @@
 
 Veltrix is a React/Vite frontend with a Node.js/Express backend, MongoDB, Redis,
 Docker, Kubernetes, Flannel CNI, Helm, Jenkins, SonarQube, Prometheus, Grafana,
-and optional AWS infrastructure.
+and AWS infrastructure.
 
 The implementation has two delivery levels:
 
-| Level | What it proves | AWS deployment required? |
+| Level | What it proves | Final submission status |
 |---|---|---:|
-| **Level A: Complete project** | The application works, images build, tests pass, Kubernetes manifests work, Flannel is used for pod networking, and the CI/CD design is ready | **No** |
-| **Level B: Cloud demonstration** | The same system runs on AWS with Terraform, Ansible, ECR, Jenkins, blue-green traffic, autoscaling, and monitoring | **Yes** |
+| **Level A: Local preparation** | The application works, images build, tests pass, Kubernetes manifests work, Flannel is used for pod networking, and the CI/CD design is ready | **Not sufficient alone** |
+| **Level B: Required final submission** | The same system runs on AWS with Terraform, Ansible, ECR, Jenkins, blue-green traffic, autoscaling, monitoring, and recorded evidence | **Required** |
 
 ### Direct answer
 
-**Yes, you can complete the project without deploying to AWS.** Use Docker Compose
-for the application, a local Kubernetes cluster for the Kubernetes work, and a
-local or Docker-based Jenkins instance for the pipeline.
+**You can develop the application without AWS, but you must deploy the final
+system to AWS for this project because the team needs to demonstrate the AWS
+services, Jenkins, Kubernetes, and the recorded end-to-end pipeline.** Use local
+Docker Compose for early development, then deploy the validated system to AWS
+before recording the final videos.
 
 **You need deployment only if the evaluation requires proof of AWS resources,
 public access, ECR, a remote Jenkins server, cloud blue-green releases, or cloud
 monitoring.** Finish Level A first, then perform Level B if AWS credits, time,
-and access are available.
+and access are available. Local development is preparation; it is not a
+replacement for the final cloud demonstration.
 
 Flannel CNI is retained and must not be removed. It remains the network plugin
 for the kubeadm cluster:
@@ -60,13 +63,99 @@ are stable. Jenkins is not required to start development.
 
 ---
 
-## 3. Ownership Model
+## 3. Three-Member Ownership and Video Plan
 
 | Owner | Responsibility | Main outputs |
 |---|---|---|
-| **Aayush** | Kubernetes platform and release strategy | kubeadm cluster, Flannel, namespaces, Services, Ingress, blue-green switching |
-| **Member 2** | Containers, Jenkins, tests, and observability | Dockerfiles, Jenkinsfile, SonarQube, Prometheus, Grafana, Alertmanager |
-| **Member 3** | Security, automation, packaging, and scaling | IAM, ECR, Ansible, Helm, Metrics Server, HPA, load test |
+| Member | Implementation ownership | AWS services owned | Videos owned |
+|---|---|---|---|
+| **Aayush** | Cloud foundation, Kubernetes, networking, and releases | EC2, ALB, Route 53/ACM | V4, V5, V6 |
+| **Member 2** | CI/CD, containers, code quality, and observability | CodePipeline/CodeBuild, CloudWatch | V1, V2, V3 |
+| **Member 3** | Security, storage, data, caching, and automation | S3, DocumentDB, IAM, ElastiCache | V7, V8, V9 |
+
+### Aayush: Cloud and Kubernetes lead
+
+- Provision the VPC, public/private subnets, route tables, and security groups.
+- Provision EC2 hosts for Jenkins, Kubernetes, monitoring, and the bastion.
+- Configure the Application Load Balancer and Kubernetes ingress path.
+- Configure Route 53 and ACM only after the application is reachable through the
+   ALB and the domain is available.
+- Initialize kubeadm, retain Flannel CNI, join worker nodes, and verify
+   `10.244.0.0/16` pod networking.
+- Own blue-green Service switching, rollback, and the final public demo route.
+
+### Member 2: CI/CD and observability lead
+
+- Own the backend and frontend multi-stage Dockerfiles and image tagging.
+- Configure Jenkins, GitHub webhook integration, SonarQube, and quality gates.
+- Implement the pipeline stages for checkout, tests, scan, build, registry push,
+   and deployment approval.
+- Configure CodePipeline/CodeBuild if the AWS implementation requires both AWS
+   CI services and Jenkins; document which system is the source of truth.
+- Configure CloudWatch logs, metrics, alarms, and dashboards alongside
+   Prometheus and Grafana.
+- Own pipeline failure and recovery evidence.
+
+### Member 3: Security, data, and automation lead
+
+- Configure IAM roles and least-privilege policies for EC2, Jenkins, and pods.
+- Configure S3 for repository objects and pre-signed uploads.
+- Configure DocumentDB as the cloud MongoDB-compatible data option, or document
+   MongoDB as the approved demonstration database if DocumentDB is not available.
+- Configure ElastiCache Redis for Socket.io adapter and cache use.
+- Implement Ansible playbooks for repeatable host configuration and hardening.
+- Implement Helm charts, Metrics Server, HPA, load testing, and security checks.
+
+### Shared rule for all three members
+
+The owner implements and demonstrates each assigned area, while the other two
+members review the pull request, repeat the verification command, and appear in
+the final rehearsal where their component affects the shared pipeline. No person
+is responsible for only documentation or only video editing.
+
+### Complete AWS and DevOps tool assignment
+
+| # | Service/tool | Implementation owner | Required evidence |
+|---:|---|---|---|
+| 1 | Amazon EC2 | Aayush | Running Jenkins, Kubernetes, monitoring, and bastion hosts |
+| 2 | Amazon S3 | Member 3 | Secure object upload or repository artifact storage |
+| 3 | Amazon DocumentDB | Member 3 | Cloud MongoDB-compatible database connection, if selected |
+| 4 | Amazon CloudFront | Member 2 | Frontend distribution and cache behavior |
+| 5 | Application Load Balancer | Aayush | Public HTTP/HTTPS route to the application |
+| 6 | AWS IAM | Member 3 | Roles, policies, and no hardcoded cloud keys |
+| 7 | AWS CodePipeline/CodeBuild | Member 2 | AWS-native build or documented Jenkins integration |
+| 8 | Amazon ElastiCache Redis | Member 3 | Cache and Socket.io shared adapter connection |
+| 9 | Amazon CloudWatch | Member 2 | Logs, metrics, alarms, and dashboard |
+| 10 | Route 53 and ACM | Aayush | DNS record and HTTPS certificate, if domain is available |
+| 11 | Terraform | Aayush | Repeatable infrastructure plan and apply |
+| 12 | Ansible | Member 3 | Idempotent host configuration playbooks |
+| 13 | Docker and Docker Compose | Member 2 | Local stack and production images |
+| 14 | Kubernetes kubeadm | Aayush | Control plane, workers, Services, and namespaces |
+| 15 | Flannel CNI | Aayush | Healthy pods and node-to-node pod networking |
+| 16 | Helm | Member 3 | Versioned chart and blue-green values |
+| 17 | Jenkins | Member 2 | Seven-stage pipeline and webhook execution |
+| 18 | SonarQube | Member 2 | Quality gate blocks a failing change |
+| 19 | Prometheus/Grafana/Alertmanager | Member 2 | Dashboards and incident alert |
+| 20 | Metrics Server/HPA | Member 3 | Scale-out and scale-in under controlled load |
+
+### Three videos per member
+
+| Video | Presenter | Subject | What must be shown |
+|---|---|---|---|
+| **V1** | Member 2 | Jenkins CI/CD pipeline | GitHub webhook, checkout, tests, image build, and successful stages |
+| **V2** | Member 2 | SonarQube and security gate | Analysis result, quality gate, intentional failure, and repaired build |
+| **V3** | Member 2 | Observability | CloudWatch/Prometheus metrics, Grafana dashboard, and an alert firing |
+| **V4** | Aayush | Terraform and AWS foundation | `terraform plan/apply`, EC2/VPC resources, and security boundaries |
+| **V5** | Aayush | Kubernetes and Flannel | kubeadm nodes, Flannel pods, `10.244.0.0/16`, Services, and healthy workloads |
+| **V6** | Aayush | Blue-green release | Green rollout, stable Service switch, continuous requests, and rollback |
+| **V7** | Member 3 | IAM, S3, database, and Redis | IAM role use, S3 object flow, DocumentDB/MongoDB data, and ElastiCache Redis |
+| **V8** | Member 3 | Helm and autoscaling | Helm install/upgrade, Metrics Server, HPA scale-out, and scale-in |
+| **V9** | Member 3 | Ansible and security | Inventory, idempotent second run, host hardening, and image/dependency scan |
+
+Each video should include: the objective, the relevant command or UI, the
+successful result, one failure or security control where applicable, and a
+short explanation of why the tool is used. Do not record secrets, access keys,
+tokens, passwords, or private key contents.
 
 Every phase should be reviewed by at least one other member before it is marked
 complete.
@@ -509,13 +598,15 @@ visible alert, and no secret appears in Git history or image layers.
 
 ---
 
-## 15. Phase 10: Optional AWS Deployment
+## 15. Phase 10: Required AWS Deployment and Final Recording
 
 **Owner:** Aayush with all members
 **Goal:** Provide cloud evidence when Level B is required.
 
-This phase is optional for completing the software project but required for a
-cloud deployment demonstration.
+This phase is required for the final project demonstration because the team
+must show the AWS services and record the deployed Jenkins-to-Kubernetes flow.
+Local Docker and Kubernetes work from earlier phases remains useful for fast
+development and troubleshooting.
 
 ### Terraform resources
 
@@ -567,7 +658,7 @@ deploys a tagged image, Flannel is healthy, and rollback is demonstrated.
 
 ## 16. Final Test and Demonstration Checklist
 
-### Level A: No AWS deployment
+### Level A: Local preparation
 
 - [ ] Clean checkout installs successfully.
 - [ ] Backend tests pass.
@@ -580,10 +671,10 @@ deploys a tagged image, Flannel is healthy, and rollback is demonstrated.
 - [ ] Helm lint and template checks pass.
 - [ ] Manual blue-green switching and rollback work.
 - [ ] Metrics Server and HPA are verified where supported.
-- [ ] Jenkins runs tests, scans, and builds images.
+- [ ] Jenkins runs tests, scans, and builds images locally or on a temporary host.
 - [ ] No credentials are committed.
 
-### Level B: AWS deployment
+### Level B: Required AWS demonstration
 
 - [ ] Terraform plan reviewed and applied.
 - [ ] Ansible completes successfully and is idempotent.
@@ -594,6 +685,7 @@ deploys a tagged image, Flannel is healthy, and rollback is demonstrated.
 - [ ] Rollback restores the previous version.
 - [ ] HPA scales under controlled load.
 - [ ] Grafana dashboards and Alertmanager alerts are demonstrated.
+- [ ] All nine videos are recorded with clear evidence and no exposed secrets.
 - [ ] AWS resources are stopped or destroyed after the demonstration where safe.
 
 ---
@@ -610,10 +702,9 @@ Local app
   -> Metrics Server and HPA
   -> Jenkins and SonarQube
   -> Observability and security
-  -> Optional AWS deployment
+   -> Required AWS deployment and nine video recordings
 ```
 
-Do not block application development on AWS provisioning or Jenkins setup. The
-project is complete at Level A when local behavior and DevOps artifacts are
-verified. Add Level B only for cloud-specific evidence requested by the course,
-reviewer, or project rubric.
+Do not block early application development on AWS provisioning or Jenkins setup.
+However, before final submission, complete Level B so the team can prove the
+AWS services, deployed DevOps tools, and nine assigned videos.
