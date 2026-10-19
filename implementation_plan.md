@@ -69,14 +69,20 @@ are stable. Jenkins is not required to start development.
 |---|---|---|
 | Member | Implementation ownership | AWS services owned | Videos owned |
 |---|---|---|---|
-| **Aayush** | Cloud foundation, Kubernetes, networking, and releases | EC2, ALB, Route 53/ACM | V4, V5, V6 |
-| **Member 2** | CI/CD, containers, code quality, and observability | CodePipeline/CodeBuild, CloudWatch | V1, V2, V3 |
-| **Member 3** | Security, storage, data, caching, and automation | S3, DocumentDB, IAM, ElastiCache | V7, V8, V9 |
+| **Aayush** | Terraform, Ansible, Jenkins, Kubernetes, networking, and blue-green releases | EC2, ALB, Route 53/ACM | V1, V4, V6 |
+| **Member 2** | Containers, code quality, AWS build integration, and observability | CloudFront, CodePipeline/CodeBuild, CloudWatch | V2, V3, V5 |
+| **Member 3** | Security, storage, data, caching, Helm, and autoscaling | S3, DocumentDB, IAM, ElastiCache | V7, V8, V9 |
 
-### Aayush: Cloud and Kubernetes lead
+### Aayush: Automation, cloud foundation, and release lead
 
 - Provision the VPC, public/private subnets, route tables, and security groups.
 - Provision EC2 hosts for Jenkins, Kubernetes, monitoring, and the bastion.
+- Implement Terraform modules, variables, outputs, remote-state safety, and
+   `plan`/`apply` verification.
+- Implement Ansible inventory and idempotent playbooks for OS prerequisites,
+   Docker/containerd, Kubernetes packages, Node Exporter, and Jenkins hosts.
+- Install and configure Jenkins, GitHub webhooks, credentials, agents, and the
+   complete pipeline orchestration.
 - Configure the Application Load Balancer and Kubernetes ingress path.
 - Configure Route 53 and ACM only after the application is reachable through the
    ALB and the domain is available.
@@ -84,17 +90,17 @@ are stable. Jenkins is not required to start development.
    `10.244.0.0/16` pod networking.
 - Own blue-green Service switching, rollback, and the final public demo route.
 
-### Member 2: CI/CD and observability lead
+### Member 2: Containers, quality, and observability lead
 
 - Own the backend and frontend multi-stage Dockerfiles and image tagging.
-- Configure Jenkins, GitHub webhook integration, SonarQube, and quality gates.
-- Implement the pipeline stages for checkout, tests, scan, build, registry push,
-   and deployment approval.
-- Configure CodePipeline/CodeBuild if the AWS implementation requires both AWS
-   CI services and Jenkins; document which system is the source of truth.
+- Configure SonarQube projects, scanner integration, and quality gates for the
+   Jenkins pipeline owned by Aayush.
+- Configure CodePipeline/CodeBuild if the AWS implementation requires AWS-native
+   build integration, and document its relationship with Jenkins.
+- Configure CloudFront for frontend delivery and cache invalidation.
 - Configure CloudWatch logs, metrics, alarms, and dashboards alongside
    Prometheus and Grafana.
-- Own pipeline failure and recovery evidence.
+- Own container, quality-gate, and observability failure evidence.
 
 ### Member 3: Security, data, and automation lead
 
@@ -103,8 +109,9 @@ are stable. Jenkins is not required to start development.
 - Configure DocumentDB as the cloud MongoDB-compatible data option, or document
    MongoDB as the approved demonstration database if DocumentDB is not available.
 - Configure ElastiCache Redis for Socket.io adapter and cache use.
-- Implement Ansible playbooks for repeatable host configuration and hardening.
 - Implement Helm charts, Metrics Server, HPA, load testing, and security checks.
+- Review Aayush's Ansible playbooks for least privilege, hardening, and
+   idempotency.
 
 ### Shared rule for all three members
 
@@ -128,12 +135,12 @@ is responsible for only documentation or only video editing.
 | 9 | Amazon CloudWatch | Member 2 | Logs, metrics, alarms, and dashboard |
 | 10 | Route 53 and ACM | Aayush | DNS record and HTTPS certificate, if domain is available |
 | 11 | Terraform | Aayush | Repeatable infrastructure plan and apply |
-| 12 | Ansible | Member 3 | Idempotent host configuration playbooks |
+| 12 | Ansible | Aayush | Idempotent host configuration playbooks |
 | 13 | Docker and Docker Compose | Member 2 | Local stack and production images |
 | 14 | Kubernetes kubeadm | Aayush | Control plane, workers, Services, and namespaces |
 | 15 | Flannel CNI | Aayush | Healthy pods and node-to-node pod networking |
 | 16 | Helm | Member 3 | Versioned chart and blue-green values |
-| 17 | Jenkins | Member 2 | Seven-stage pipeline and webhook execution |
+| 17 | Jenkins | Aayush | Seven-stage pipeline and webhook execution |
 | 18 | SonarQube | Member 2 | Quality gate blocks a failing change |
 | 19 | Prometheus/Grafana/Alertmanager | Member 2 | Dashboards and incident alert |
 | 20 | Metrics Server/HPA | Member 3 | Scale-out and scale-in under controlled load |
@@ -142,12 +149,12 @@ is responsible for only documentation or only video editing.
 
 | Video | Presenter | Subject | What must be shown |
 |---|---|---|---|
-| **V1** | Member 2 | Jenkins CI/CD pipeline | GitHub webhook, checkout, tests, image build, and successful stages |
-| **V2** | Member 2 | SonarQube and security gate | Analysis result, quality gate, intentional failure, and repaired build |
-| **V3** | Member 2 | Observability | CloudWatch/Prometheus metrics, Grafana dashboard, and an alert firing |
-| **V4** | Aayush | Terraform and AWS foundation | `terraform plan/apply`, EC2/VPC resources, and security boundaries |
-| **V5** | Aayush | Kubernetes and Flannel | kubeadm nodes, Flannel pods, `10.244.0.0/16`, Services, and healthy workloads |
-| **V6** | Aayush | Blue-green release | Green rollout, stable Service switch, continuous requests, and rollback |
+| **V1** | Aayush | Jenkins CI/CD pipeline | GitHub webhook, checkout, tests, image build, deployment approval, and successful stages |
+| **V2** | Member 2 | SonarQube and container quality | Analysis result, quality gate, image scan, intentional failure, and repaired build |
+| **V3** | Member 2 | Observability and CloudFront | CloudWatch/Prometheus metrics, Grafana dashboard, frontend delivery, and an alert firing |
+| **V4** | Aayush | Terraform, Ansible, and AWS foundation | `terraform plan/apply`, Ansible run, EC2/VPC resources, and security boundaries |
+| **V5** | Member 2 | Docker and Kubernetes application images | Compose stack, image build, registry tag, frontend, backend, and health checks |
+| **V6** | Aayush | Kubernetes, Flannel, and blue-green release | kubeadm nodes, Flannel pods, `10.244.0.0/16`, green rollout, switch, and rollback |
 | **V7** | Member 3 | IAM, S3, database, and Redis | IAM role use, S3 object flow, DocumentDB/MongoDB data, and ElastiCache Redis |
 | **V8** | Member 3 | Helm and autoscaling | Helm install/upgrade, Metrics Server, HPA scale-out, and scale-in |
 | **V9** | Member 3 | Ansible and security | Inventory, idempotent second run, host hardening, and image/dependency scan |
@@ -444,7 +451,7 @@ reaches the backend through the intended Service path.
 
 ## 11. Phase 6: Helm Packaging and Blue-Green Releases
 
-**Owner:** Member 3 with Aayush
+**Owner:** Aayush with Member 3
 **Goal:** Make releases repeatable and reversible.
 
 ### Helm chart requirements
@@ -513,7 +520,7 @@ controlled load, then scales down after cooldown.
 
 ## 13. Phase 8: Jenkins and SonarQube CI/CD
 
-**Owner:** Member 2
+**Owner:** Aayush with Member 2
 **Goal:** Automate repeatable validation and artifact creation. Jenkins is done
 after the manual workflow is proven.
 
