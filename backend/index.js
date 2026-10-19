@@ -9,7 +9,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const mainRouter = require("./routes/main.router");
 
-const yargs = require("yargs");
+const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 
 const { initRepo } = require("./controllers/init");
@@ -105,6 +105,7 @@ function startServer() {
   app.use(cors({ origin: "*" }));
 
   app.use("/", mainRouter);
+  app.use("/api", mainRouter);
 
   let user = "test";
   const httpServer = http.createServer(app);
