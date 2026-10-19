@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import "./profile.css";
 import Navbar from "../Navbar";
+import api from "../../api";
 import { UnderlineNav } from "@primer/react";
 import { BookIcon, RepoIcon } from "@primer/octicons-react";
 import HeatMapProfile from "./HeatMap";
@@ -19,9 +19,7 @@ const Profile = () => {
 
       if (userId) {
         try {
-          const response = await axios.get(
-            `http://localhost:3002/userProfile/${userId}`
-          );
+          const response = await api.get(`/userProfile/${userId}`);
           setUserDetails(response.data);
         } catch (err) {
           console.error("Cannot fetch user details: ", err);

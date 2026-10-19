@@ -28,8 +28,8 @@ COPY . .
 
 # Build args injected at build time by Jenkins/docker-compose
 # These are ONLY available during build — not baked into runtime image
-ARG VITE_API_BASE_URL=http://localhost:5000/api
-ARG VITE_SOCKET_URL=http://localhost:5000
+ARG VITE_API_BASE_URL=https://veltrix-rz9z.onrender.com/api
+ARG VITE_SOCKET_URL=https://veltrix-rz9z.onrender.com
 
 # Pass build args into Vite via VITE_ prefix env vars
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

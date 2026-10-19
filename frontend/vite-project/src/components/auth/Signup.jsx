@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "../../authContext";
+import api from "../../api";
 
 import { PageHeader } from "@primer/react/drafts";
 import { Box, Button } from "@primer/react";
@@ -22,7 +22,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:3002/signup", {
+      const res = await api.post("/signup", {
         email: email,
         password: password,
         username: username,
