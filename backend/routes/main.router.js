@@ -25,10 +25,6 @@ mainRouter.use("/pulls", prRouter);
 mainRouter.use("/security", securityRouter);
 mainRouter.use("/releases", releaseRouter);
 
-mainRouter.use(userRouter);
-mainRouter.use(repoRouter);
-mainRouter.use(issueRouter);
-
 const { s3, S3_BUCKET } = require("../config/aws-config");
 
 mainRouter.get("/aws/status", async (req, res) => {

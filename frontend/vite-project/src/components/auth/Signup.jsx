@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../authContext";
-import api from "../../api";
+import { authAPI } from "../../api";
 
 import { PageHeader } from "@primer/react/drafts";
 import { Box, Button } from "@primer/react";
@@ -22,11 +22,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      const res = await api.post("/signup", {
-        email: email,
-        password: password,
-        username: username,
-      });
+      const res = await authAPI.signup({ email, password, username });
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.userId);
@@ -37,7 +33,8 @@ const Signup = () => {
       window.location.href = "/";
     } catch (err) {
       console.error(err);
-      alert("Signup Failed!");
+      const msg = err.response?.data?.message || "Signup Failed!";
+      alert(msg);
       setLoading(false);
     }
   };
