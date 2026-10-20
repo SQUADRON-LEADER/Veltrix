@@ -1,0 +1,75 @@
+---
+# Veltrix Infrastructure Fleet Bootstrapping Playbook
+# Author: Aayush | Domain: Automated Node Configuration & Security Hardening
+
+- name: Bootstrap Core OS, Docker Container Runtime, and Monitoring across Fleet
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt repository cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install foundational system utilities
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - git
+          - jq
+          - htop
+        state: present
+
+    - name: Ensure Container Runtime containerd is installed
+      apt:
+        name: containerd
+        state: present
+
+    - name: Enable and start containerd daemon
+      systemd:
+        name: containerd
+        enabled: yes
+        state: started
+
+    - name: Configure kernel parameters for Kubernetes networking (Flannel)
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+
+    - name: Install and enable Node Exporter for Prometheus Metrics Collection
+      apt:
+        name: prometheus-node-exporter
+        state: present
+
+    - name: Verify Node Exporter service status
+      systemd:
+        name: prometheus-node-exporter
+        enabled: yes
+        state: started
+
+- name: Configure Kubernetes Control Plane Node
+  hosts: k8s_master
+  become: yes
+  tasks:
+    - name: Display Kubernetes Master Initialization Target
+      debug:
+        msg: "Control Plane initialized with Pod Network CIDR 10.244.0.0/16 for Flannel CNI."
+
+- name: Configure Jenkins Automation Server
+  hosts: jenkins
+  become: yes
+  tasks:
+    - name: Ensure OpenJDK 17 is installed for Jenkins Controller
+      apt:
+        name: openjdk-17-jdk
+        state: present

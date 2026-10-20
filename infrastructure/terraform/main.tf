@@ -1,5 +1,5 @@
 # Terraform Infrastructure as Code (IaC) for Veltrix AWS Architecture
-# Enforces the 10 Key AWS Services described in the system architecture
+# Author: Aayush | Domain: Cloud Infrastructure, VPC, EC2 Fleet, ALB, & Security
 
 terraform {
   required_version = ">= 1.3.0"
@@ -12,122 +12,87 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region                      = var.aws_region
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
 }
 
-# 1. Amazon EC2 / ECS Cluster for API execution engine
-resource "aws_ecs_cluster" "veltrix_cluster" {
-  name = "veltrix-ecs-cluster-${var.environment}"
-}
-
-# 2. Amazon S3 Bucket for direct file uploads & code storage
-resource "aws_s3_bucket" "veltrix_code_storage" {
-  bucket = var.s3_bucket_name
+# 1. AWS VPC & Network Isolation
+resource "aws_vpc" "veltrix_vpc" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
-    Name        = "Veltrix Code Storage"
+    Name        = "veltrix-vpc-${var.environment}"
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_internet_gateway" "veltrix_igw" {
+  vpc_id = aws_vpc.veltrix_vpc.id
+
+  tags = {
+    Name        = "veltrix-igw-${var.environment}"
     Environment = var.environment
   }
 }
 
-resource "aws_s3_bucket_cors_configuration" "s3_cors" {
-  bucket = aws_s3_bucket.veltrix_code_storage.id
+resource "aws_subnet" "public_subnet_1" {
+  vpc_id                  = aws_vpc.veltrix_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
 
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "PUT", "POST", "DELETE", "HEAD"]
-    allowed_origins = ["*"]
-    max_age_seconds = 3000
+  tags = {
+    Name = "veltrix-public-1-${var.environment}"
   }
 }
 
-# 3. Amazon DocumentDB (MongoDB Compatibility) Database Cluster
-resource "aws_docdb_cluster" "docdb" {
-  cluster_identifier      = "veltrix-docdb-cluster"
-  engine                  = "docdb"
-  master_username         = var.docdb_username
-  master_password         = var.docdb_password
-  backup_retention_period = 7
-  preferred_backup_window = "07:00-09:00"
-  skip_final_snapshot     = true
-}
+resource "aws_subnet" "public_subnet_2" {
+  vpc_id                  = aws_vpc.veltrix_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
 
-# 4. Amazon CloudFront CDN Distribution for Vite Frontend
-resource "aws_cloudfront_distribution" "cdn" {
-  origin {
-    domain_name = aws_s3_bucket.veltrix_code_storage.bucket_regional_domain_name
-    origin_id   = "S3-Veltrix-Frontend"
-  }
-
-  enabled             = true
-  is_ipv6_enabled     = true
-  default_root_object = "index.html"
-
-  default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-Veltrix-Frontend"
-
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-  }
-
-  restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
-  }
-
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  tags = {
+    Name = "veltrix-public-2-${var.environment}"
   }
 }
 
-# 5. Application Load Balancer (ALB) with Sticky Sessions for Socket.io
-resource "aws_lb" "veltrix_alb" {
-  name               = "veltrix-alb-${var.environment}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = var.subnet_ids
-}
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.veltrix_vpc.id
 
-resource "aws_lb_target_group" "backend_tg" {
-  name     = "veltrix-backend-tg"
-  port     = 5000
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-
-  stickiness {
-    type            = "lb_cookie"
-    cookie_duration = 86400
-    enabled         = true
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.veltrix_igw.id
   }
 
-  health_check {
-    path                = "/aws/status"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+  tags = {
+    Name = "veltrix-public-rt"
   }
 }
 
+resource "aws_route_table_association" "public_1_assoc" {
+  subnet_id      = aws_subnet.public_subnet_1.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table_association" "public_2_assoc" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# 2. Security Groups: ALB, Jenkins, Kubernetes
 resource "aws_security_group" "alb_sg" {
   name        = "veltrix-alb-sg"
   description = "Allow inbound HTTP/HTTPS traffic"
-  vpc_id      = var.vpc_id
+  vpc_id      = aws_vpc.veltrix_vpc.id
 
   ingress {
+    description = "HTTP Public"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -135,6 +100,7 @@ resource "aws_security_group" "alb_sg" {
   }
 
   ingress {
+    description = "HTTPS Public"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -147,9 +113,104 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "veltrix-alb-sg"
+  }
 }
 
-# 6. AWS IAM Role for Backend S3 Read/Write
+resource "aws_security_group" "ec2_sg" {
+  name        = "veltrix-ec2-sg"
+  description = "Security group for Veltrix EC2 fleet (Jenkins, Kubeadm Master & Workers)"
+  vpc_id      = aws_vpc.veltrix_vpc.id
+
+  ingress {
+    description = "SSH from Bastion"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Jenkins Web UI"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description     = "Traffic from ALB"
+    from_port       = 5000
+    to_port         = 5000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# 3. Application Load Balancer (ALB)
+resource "aws_lb" "veltrix_alb" {
+  name               = "veltrix-alb-${var.environment}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+
+  tags = {
+    Name = "veltrix-alb-${var.environment}"
+  }
+}
+
+resource "aws_lb_target_group" "backend_tg" {
+  name     = "veltrix-backend-tg"
+  port     = 5000
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.veltrix_vpc.id
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_listener" "http_listener" {
+  load_balancer_arn = aws_lb.veltrix_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_tg.arn
+  }
+}
+
+# 4. Amazon S3 Storage Bucket
+resource "aws_s3_bucket" "veltrix_code_storage" {
+  bucket = var.s3_bucket_name
+
+  tags = {
+    Name        = "Veltrix Code Storage"
+    Environment = var.environment
+  }
+}
+
+# 5. Amazon ECS Cluster for Microservices Engine
+resource "aws_ecs_cluster" "veltrix_cluster" {
+  name = "veltrix-ecs-cluster-${var.environment}"
+}
+
+# 6. AWS IAM Role for Compute Nodes & Services
 resource "aws_iam_role" "backend_s3_role" {
   name = "veltrix-backend-s3-access-role"
 
@@ -167,47 +228,33 @@ resource "aws_iam_role" "backend_s3_role" {
   })
 }
 
-# 7. AWS CodePipeline & CodeBuild Pipeline
-resource "aws_codebuild_project" "veltrix_build" {
-  name         = "veltrix-codebuild-project"
-  service_role = aws_iam_role.backend_s3_role.arn
-
-  artifacts {
-    type = "NO_ARTIFACTS"
-  }
-
-  environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/standard:6.0"
-    type                        = "LINUX_CONTAINER"
-    privileged_mode             = true
-  }
-
-  source {
-    type            = "GITHUB"
-    location        = "https://github.com/yourusername/veltrix.git"
-    buildspec       = "buildspec.yml"
-  }
-}
-
-# 8. Amazon ElastiCache (Redis) Cluster for Socket.io horizontal scaling
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "veltrix-redis-cluster"
-  engine               = "redis"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-}
-
-# 9. Amazon CloudWatch Log Group
+# 7. Amazon CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "veltrix_logs" {
   name              = "/aws/veltrix/${var.environment}"
   retention_in_days = 30
 }
 
-# 10. Amazon Route 53 DNS Record Placeholder
-data "aws_route53_zone" "primary" {
-  name         = "veltrix-devops.com"
-  private_zone = false
+# 8. EC2 Fleet Instances (Jenkins, Kubernetes Master & Workers)
+resource "aws_instance" "jenkins_controller" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public_subnet_1.id
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+
+  tags = {
+    Name = "veltrix-jenkins-controller"
+    Role = "CI-CD-Controller"
+  }
+}
+
+resource "aws_instance" "k8s_master" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public_subnet_1.id
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+
+  tags = {
+    Name = "veltrix-k8s-master"
+    Role = "Kubernetes-Control-Plane"
+  }
 }

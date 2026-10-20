@@ -10,33 +10,26 @@ variable "environment" {
   default     = "production"
 }
 
+variable "vpc_cidr" {
+  description = "VPC CIDR IP Block"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
 variable "s3_bucket_name" {
   description = "S3 Bucket for code blobs & assets"
   type        = string
   default     = "veltrix-cloud-storage-2026"
 }
 
-variable "docdb_username" {
-  description = "DocumentDB Master Username"
+variable "ami_id" {
+  description = "Ubuntu 22.04 LTS AMI ID"
   type        = string
-  default     = "veltrix_admin"
+  default     = "ami-0c7217cdde317cfec"
 }
 
-variable "docdb_password" {
-  description = "DocumentDB Master Password"
+variable "instance_type" {
+  description = "EC2 Instance compute sizing"
   type        = string
-  sensitive   = true
-  default     = "VeltrixSecurePass2026!"
-}
-
-variable "vpc_id" {
-  description = "AWS VPC Identifier"
-  type        = string
-  default     = "vpc-0123456789abcdef0"
-}
-
-variable "subnet_ids" {
-  description = "Subnet IDs for ALB"
-  type        = list(string)
-  default     = ["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"]
+  default     = "t3.medium"
 }
