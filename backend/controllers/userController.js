@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const dotenv = require("dotenv");
-var ObjectId = require("mongodb").ObjectId;
+const User = require("../models/userModel");
 
 dotenv.config();
 const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
@@ -10,11 +10,44 @@ const dbName = "veltrix";
 
 let client;
 
+function isDbError(err) {
+  if (!err) return false;
+  return (
+    err.name === "MongoServerSelectionError" ||
+    err.name === "MongoNetworkError" ||
+    err.name === "MongoTimeoutError" ||
+    err.name === "MongooseServerSelectionError" ||
+    err.code === "ENOTFOUND" ||
+    (typeof err.message === "string" &&
+      (err.message.includes("ENOTFOUND") ||
+        err.message.includes("querySrv") ||
+        err.message.includes("buffering timed out") ||
+        err.message.includes("failed to connect to server")))
+  );
+}
+
 async function connectClient() {
-  if (!client) {
-    client = new MongoClient(uri);
-    await client.connect();
+  if (!uri) {
+    throw new Error("MongoDB connection URI is not configured");
   }
+
+  if (!client) {
+    try {
+      client = new MongoClient(uri);
+      await client.connect();
+    } catch (err) {
+      client = null;
+      throw err;
+    }
+  }
+}
+
+function getJwtSecret() {
+  return (
+    process.env.JWT_SECRET_KEY ||
+    process.env.JWT_SECRET ||
+    "default_jwt_secret"
+  );
 }
 
 async function signup(req, res) {
@@ -22,58 +55,105 @@ async function signup(req, res) {
   try {
     if (!username || !password || !email) {
       return res.status(400).json({
-        message: "username, password, and email are required",
+        message: "Username, email, and password are required",
       });
     }
+
+    const jwtSecret = getJwtSecret();
 
     await connectClient();
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    const user = await usersCollection.findOne({ username });
+    const user = await usersCollection.findOne({
+      $or: [{ username }, { email }],
+    });
     if (user) {
-      return res.status(400).json({ message: "User already exists!" });
+      return res.status(409).json({
+        message:
+          user.username === username
+            ? "Username is already in use"
+            : "Email is already registered",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = {
+    const result = await usersCollection.insertOne({
       username,
-      password: hashedPassword,
       email,
+      password: hashedPassword,
+      bio: "",
+      location: "",
+      website: "",
+      avatar: "",
       repositories: [],
       followedUsers: [],
+      followers: [],
+      following: [],
       starRepos: [],
-    };
-
-    const result = await usersCollection.insertOne(newUser);
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     const token = jwt.sign(
       { id: result.insertedId },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "1h" }
+      jwtSecret,
+      { expiresIn: "7d" }
     );
-    const safeUser = { _id: result.insertedId, username, email };
-    res.json({ token, userId: result.insertedId, user: safeUser });
+    const safeUser = {
+      _id: result.insertedId,
+      id: result.insertedId,
+      username,
+      email,
+      bio: "",
+      location: "",
+      website: "",
+      followers: 0,
+      following: 0,
+    };
+    res.status(201).json({ token, userId: result.insertedId, user: safeUser });
   } catch (err) {
     console.error("Error during signup : ", err.message);
-    res.status(500).send("Server error");
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern || {})[0];
+      return res.status(409).json({
+        message:
+          duplicateField === "email"
+            ? "Email is already registered"
+            : "Username is already in use",
+      });
+    }
+    if (isDbError(err)) {
+      return res.status(503).json({
+        message:
+          "Database service is unavailable. Please check MongoDB connection.",
+      });
+    }
+    res.status(500).json({ message: "Unable to create account" });
   }
 }
 
 async function login(req, res) {
-  const { email, password } = req.body || {};
+  const { email, username, password } = req.body || {};
   try {
-    if (!email || !password) {
-      return res.status(400).json({ message: "email and password are required" });
+    const identifier = email || username;
+    if (!identifier || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username/email and password are required" });
     }
+
+    const jwtSecret = getJwtSecret();
 
     await connectClient();
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials!" });
     }
@@ -83,14 +163,24 @@ async function login(req, res) {
       return res.status(400).json({ message: "Invalid credentials!" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
-      expiresIn: "1h",
+    const token = jwt.sign({ id: user._id }, jwtSecret, {
+      expiresIn: "7d",
     });
     const { password: _, ...safeUser } = user;
+    safeUser.id = user._id;
+    safeUser.followers = (user.followers || []).length;
+    safeUser.following = (user.following || []).length;
+
     res.json({ token, userId: user._id, user: safeUser });
   } catch (err) {
     console.error("Error during login : ", err.message);
-    res.status(500).send("Server error!");
+    if (isDbError(err)) {
+      return res.status(503).json({
+        message:
+          "Database service is unavailable. Please check MongoDB connection.",
+      });
+    }
+    res.status(500).json({ message: "Unable to log in" });
   }
 }
 
@@ -100,68 +190,184 @@ async function getAllUsers(req, res) {
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    const users = await usersCollection.find({}).toArray();
+    const users = await usersCollection
+      .find({})
+      .project({ password: 0 })
+      .toArray();
     res.json(users);
   } catch (err) {
-    console.error("Error during fetching : ", err.message);
-    res.status(500).send("Server error!");
+    console.error("Error during fetching users: ", err.message);
+    if (isDbError(err)) {
+      return res.status(503).json({
+        message: "Database service is unavailable.",
+      });
+    }
+    res.status(500).json({ message: "Server error!" });
   }
 }
 
 async function getUserProfile(req, res) {
-  const currentID = req.params.id;
+  const target = req.params.id || req.params.username;
 
   try {
     await connectClient();
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    const user = await usersCollection.findOne({
-      _id: new ObjectId(currentID),
-    });
+    let query = {};
+    if (ObjectId.isValid(target) && target.length === 24) {
+      query = { $or: [{ _id: new ObjectId(target) }, { username: target }] };
+    } else {
+      query = { username: target };
+    }
+
+    const user = await usersCollection.findOne(query);
 
     if (!user) {
       return res.status(404).json({ message: "User not found!" });
     }
 
-    res.send(user);
+    const { password: _, ...safeUser } = user;
+    safeUser.followers = (user.followers || []).length;
+    safeUser.following = (user.following || []).length;
+
+    // Support both res.data.user and res.data
+    res.json({ user: safeUser, ...safeUser });
   } catch (err) {
-    console.error("Error during fetching : ", err.message);
-    res.status(500).send("Server error!");
+    console.error("Error during fetching profile: ", err.message);
+    if (isDbError(err)) {
+      return res.status(503).json({
+        message: "Database service is unavailable.",
+      });
+    }
+    res.status(500).json({ message: "Server error!" });
   }
 }
 
 async function updateUserProfile(req, res) {
   const currentID = req.params.id;
-  const { email, password } = req.body || {};
+  const { email, password, bio, location, website } = req.body || {};
 
   try {
     await connectClient();
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    let updateFields = { email };
+    let updateFields = { updatedAt: new Date() };
+    if (email) updateFields.email = email;
+    if (bio !== undefined) updateFields.bio = bio;
+    if (location !== undefined) updateFields.location = location;
+    if (website !== undefined) updateFields.website = website;
+
     if (password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
       updateFields.password = hashedPassword;
     }
 
+    let query = {};
+    if (ObjectId.isValid(currentID) && currentID.length === 24) {
+      query = { _id: new ObjectId(currentID) };
+    } else {
+      query = { username: currentID };
+    }
+
     const result = await usersCollection.findOneAndUpdate(
-      {
-        _id: new ObjectId(currentID),
-      },
+      query,
       { $set: updateFields },
-      { returnDocument: "after" }
+      { returnDocument: "after", projection: { password: 0 } }
     );
     if (!result) {
       return res.status(404).json({ message: "User not found!" });
     }
 
-    res.send(result);
+    res.json(result);
   } catch (err) {
-    console.error("Error during updating : ", err.message);
-    res.status(500).send("Server error!");
+    console.error("Error during updating: ", err.message);
+    if (isDbError(err)) {
+      return res.status(503).json({
+        message: "Database service is unavailable.",
+      });
+    }
+    res.status(500).json({ message: "Server error!" });
+  }
+}
+
+async function updateCurrentProfile(req, res) {
+  const userId = req.user?._id;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  const { bio, location, website, email } = req.body || {};
+  try {
+    await connectClient();
+    const db = client.db(dbName);
+    const usersCollection = db.collection("users");
+
+    let updateFields = { updatedAt: new Date() };
+    if (bio !== undefined) updateFields.bio = bio;
+    if (location !== undefined) updateFields.location = location;
+    if (website !== undefined) updateFields.website = website;
+    if (email) updateFields.email = email;
+
+    const result = await usersCollection.findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { $set: updateFields },
+      { returnDocument: "after", projection: { password: 0 } }
+    );
+
+    res.json({ message: "Profile updated successfully", user: result });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to update profile" });
+  }
+}
+
+async function changePassword(req, res) {
+  const userId = req.user?._id;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  const { currentPassword, newPassword } = req.body || {};
+  try {
+    await connectClient();
+    const db = client.db(dbName);
+    const usersCollection = db.collection("users");
+
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.password && currentPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password does not match" });
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await usersCollection.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { password: hashedPassword, updatedAt: new Date() } }
+    );
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to change password" });
+  }
+}
+
+async function deleteAccount(req, res) {
+  const userId = req.user?._id;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    await connectClient();
+    const db = client.db(dbName);
+    const usersCollection = db.collection("users");
+
+    await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+    res.json({ message: "Account deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to delete account" });
   }
 }
 
@@ -173,9 +379,14 @@ async function deleteUserProfile(req, res) {
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
 
-    const result = await usersCollection.deleteOne({
-      _id: new ObjectId(currentID),
-    });
+    let query = {};
+    if (ObjectId.isValid(currentID) && currentID.length === 24) {
+      query = { _id: new ObjectId(currentID) };
+    } else {
+      query = { username: currentID };
+    }
+
+    const result = await usersCollection.deleteOne(query);
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "User not found!" });
@@ -183,9 +394,51 @@ async function deleteUserProfile(req, res) {
 
     res.json({ message: "User Profile Deleted!" });
   } catch (err) {
-    console.error("Error during updating : ", err.message);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
+}
+
+async function searchUsers(req, res) {
+  const { q } = req.query;
+  try {
+    await connectClient();
+    const db = client.db(dbName);
+    const usersCollection = db.collection("users");
+
+    const query = q
+      ? {
+          $or: [
+            { username: { $regex: q, $options: "i" } },
+            { email: { $regex: q, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const users = await usersCollection
+      .find(query)
+      .project({ password: 0 })
+      .limit(20)
+      .toArray();
+
+    res.json({ users, count: users.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Error searching users" });
+  }
+}
+
+async function getActivity(req, res) {
+  const { username } = req.params;
+  res.json({
+    activities: [
+      {
+        id: "act-1",
+        type: "commit",
+        repo: "veltrix",
+        message: "Initial release commit",
+        date: new Date(),
+      },
+    ],
+  });
 }
 
 async function getMe(req, res) {
@@ -196,14 +449,16 @@ async function getMe(req, res) {
   if (!token) return res.status(401).json({ message: "No token provided" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const decoded = jwt.verify(token, getJwtSecret());
     await connectClient();
     const db = client.db(dbName);
     const usersCollection = db.collection("users");
     const user = await usersCollection.findOne({ _id: new ObjectId(decoded.id) });
     if (!user) return res.status(404).json({ message: "User not found" });
     const { password: _, ...safeUser } = user;
-    res.json(safeUser);
+    safeUser.followers = (user.followers || []).length;
+    safeUser.following = (user.following || []).length;
+    res.json({ user: safeUser, ...safeUser });
   } catch (err) {
     console.error("getMe error:", err.message);
     res.status(401).json({ message: "Invalid token" });
@@ -217,5 +472,10 @@ module.exports = {
   getMe,
   getUserProfile,
   updateUserProfile,
+  updateCurrentProfile,
+  changePassword,
+  deleteAccount,
   deleteUserProfile,
+  searchUsers,
+  getActivity,
 };

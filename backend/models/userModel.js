@@ -1,42 +1,70 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const UserSchema = new Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-  },
-  repositories: [
-    {
-      default: [],
-      type: Schema.Types.ObjectId,
-      ref: "Repository",
+const UserSchema = new Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
     },
-  ],
-  followedUsers: [
-    {
-      default: [],
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    email: {
+      type: String,
+      required: true,
+      unique: true,
     },
-  ],
-  starRepos: [
-    {
-      default: [],
-      type: Schema.Types.ObjectId,
-      ref: "Repository",
+    password: {
+      type: String,
     },
-  ],
-}, { timestamps: true });
+    bio: {
+      type: String,
+      default: "",
+    },
+    location: {
+      type: String,
+      default: "",
+    },
+    website: {
+      type: String,
+      default: "",
+    },
+    avatar: {
+      type: String,
+      default: "",
+    },
+    repositories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Repository",
+      },
+    ],
+    followedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    followers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    following: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    starRepos: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Repository",
+      },
+    ],
+  },
+  { timestamps: true }
+);
 
 const User = mongoose.model("User", UserSchema);
 

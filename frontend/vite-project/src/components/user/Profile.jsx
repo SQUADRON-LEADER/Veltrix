@@ -20,7 +20,8 @@ const Profile = () => {
       if (userId) {
         try {
           const response = await api.get(`/userProfile/${userId}`);
-          setUserDetails(response.data);
+          const profile = response.data?.user || response.data || {};
+          setUserDetails(profile);
         } catch (err) {
           console.error("Cannot fetch user details: ", err);
         }
