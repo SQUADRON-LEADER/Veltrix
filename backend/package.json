@@ -1,6 +1,9 @@
 {
   "name": "veltrix",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "description": "Veltrix Enterprise DevOps & Version Control CLI",
   "license": "ISC",
   "author": "",
@@ -12,7 +15,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "test": "jest --passWithNoTests"
+    "test": "jest tests/ --passWithNoTests"
   },
   "dependencies": {
     "aws-sdk": "^2.1692.0",
