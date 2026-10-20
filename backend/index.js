@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+// Polyfill Web Crypto API for Node < 18 (required by bcryptjs v3 and uuid v11)
+if (!globalThis.crypto) {
+  const { webcrypto } = require("crypto");
+  globalThis.crypto = webcrypto;
+}
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
