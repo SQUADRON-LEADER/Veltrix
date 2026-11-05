@@ -19,7 +19,7 @@ variable "vpc_cidr" {
 variable "s3_bucket_name" {
   description = "S3 Bucket for code blobs & assets"
   type        = string
-  default     = "veltrix-cloud-storage-2026"
+  default     = "veltrix-storage-864046983878"
 }
 
 variable "ami_id" {

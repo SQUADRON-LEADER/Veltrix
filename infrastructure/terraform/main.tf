@@ -12,10 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  region                      = var.aws_region
-  skip_credentials_validation = true
-  skip_requesting_account_id  = true
-  skip_metadata_api_check     = true
+  region = var.aws_region
 }
 
 # 1. AWS VPC & Network Isolation
@@ -236,10 +233,11 @@ resource "aws_cloudwatch_log_group" "veltrix_logs" {
 
 # 8. EC2 Fleet Instances (Jenkins, Kubernetes Master & Workers)
 resource "aws_instance" "jenkins_controller" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  subnet_id     = aws_subnet.public_subnet_1.id
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public_subnet_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  key_name               = "veltrix-key"
 
   tags = {
     Name = "veltrix-jenkins-controller"
@@ -248,10 +246,11 @@ resource "aws_instance" "jenkins_controller" {
 }
 
 resource "aws_instance" "k8s_master" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  subnet_id     = aws_subnet.public_subnet_1.id
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public_subnet_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  key_name               = "veltrix-key"
 
   tags = {
     Name = "veltrix-k8s-master"

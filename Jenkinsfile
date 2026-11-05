@@ -39,8 +39,9 @@ pipeline {
                         sh '''
                             /opt/sonar-scanner/bin/sonar-scanner \
                                 -Dsonar.projectKey=veltrix \
-                                -Dsonar.sources=./backend,./frontend/vite-project/src \
-                                -Dsonar.exclusions=**/node_modules/**,**/tests/**
+                                -Dsonar.sources=./backend \
+                                -Dsonar.exclusions=**/node_modules/**,**/tests/**,**/coverage/** \
+                                -Dsonar.javascript.node.maxspace=2048
                         '''
                     }
                 }
