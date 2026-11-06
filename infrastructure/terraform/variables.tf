@@ -1,5 +1,8 @@
+# Terraform Variables Specification for Veltrix Architecture
+# Author: Aayush | Domain: Infrastructure as Code & Network Isolation
+
 variable "aws_region" {
-  description = "Target AWS Region"
+  description = "Target AWS Region for Veltrix Fleet"
   type        = string
   default     = "us-east-1"
 }
