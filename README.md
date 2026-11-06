@@ -76,10 +76,10 @@ Route 53 manages our highly available DNS routing, paired with AWS Certificate M
 To run the Veltrix architecture on your local machine for development:
 
 ### Prerequisites
-- Node.js (v18+ recommended)
+- Node.js
 - MongoDB 
 - Redis 
-- AWS Account (Create an IAM user with programmatic access for local S3 testing)
+- AWS Account 
 
 ### 1. Clone the Repository
 ```bash
