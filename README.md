@@ -3,7 +3,6 @@
 **Veltrix** is an enterprise-grade, DevOps-centric **Version Control System** and real-time collaboration platform. Inspired by industry-standard tools (like GitHub/GitLab), it is designed to manage repositories, track code changes, and facilitate seamless developer collaboration.
 
 The core technology stack features **React (Vite)** on the frontend and a high-performance **Node.js, Express, MongoDB, and Socket.io** backend. 
-
 A central pillar of this DevOps project is its robust cloud infrastructure. We are building this with a heavy emphasis on modern deployment practices, utilizing exactly **10 key Amazon Web Services (AWS)** to achieve massive scalability, security, and automated CI/CD pipelines.
 
 ---
