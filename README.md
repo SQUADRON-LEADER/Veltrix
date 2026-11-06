@@ -77,7 +77,7 @@ To run the Veltrix architecture on your local machine for development:
 
 ### Prerequisites
 - Node.js (v18+ recommended)
-- MongoDB (Running locally or a MongoDB Atlas cluster)
+- MongoDB 
 - Redis 
 - AWS Account (Create an IAM user with programmatic access for local S3 testing)
 
