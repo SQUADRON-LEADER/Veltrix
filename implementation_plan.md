@@ -69,9 +69,9 @@ are stable. Jenkins is not required to start development.
 |---|---|---|
 | Member | Implementation ownership | AWS services owned | Videos owned |
 |---|---|---|---|
-| **Aayush** | Terraform, Ansible, Jenkins, Kubernetes, networking, and blue-green releases | EC2, ALB, Route 53/ACM | V1, V4, V6 |
+| **Aayush** | Terraform, Ansible, Jenkins, Kubernetes | EC2, ALB, Route 53/ACM | V1, V4, V6 |
 | **Member 2** | Containers, code quality, AWS build integration, and observability | CloudFront, CodePipeline/CodeBuild, CloudWatch | V2, V3, V5 |
-| **Member 3** | Security, storage, data, caching, Helm, and autoscaling | S3, DocumentDB, IAM, ElastiCache | V7, V8, V9 |
+| **Member 3** | Security, storage, data, caching, Helm, and autoscaling, networking, and blue-green releases | S3, DocumentDB, IAM, ElastiCache | V7, V8, V9 |
 
 ### Aayush: Automation, cloud foundation, and release lead
 
