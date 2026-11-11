@@ -1,0 +1,12 @@
+Release {{ .Release.Name }} installed in namespace {{ .Release.Namespace }}.
+{{- if .Values.deployment.enabled }}
+
+Color deployed: {{ .Values.color }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/veltrix-backend-{{ .Values.color }}
+  kubectl -n {{ .Release.Namespace }} get deploy,svc,hpa -l env={{ .Values.color }}
+{{- end }}
+{{- if .Values.stable.enabled }}
+
+Stable Services now route to: {{ .Values.stable.activeColor }}
+  kubectl -n {{ .Release.Namespace }} get svc veltrix-service -o jsonpath='{.spec.selector.env}'
+{{- end }}

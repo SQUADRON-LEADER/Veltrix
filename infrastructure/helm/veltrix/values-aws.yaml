@@ -1,0 +1,15 @@
+# Single-node kubeadm cluster on EC2 (images imported into containerd, not pulled from ECR).
+# The backend talks to the real DocumentDB / ElastiCache / S3 of the veltrix-m3 stack.
+backend:
+  image:
+    repository: veltrix-backend
+    pullPolicy: Never
+frontend:
+  enabled: false
+docdbCa:
+  enabled: true
+  configMapName: docdb-ca
+config:
+  NODE_ENV: production
+  AWS_REGION: us-east-1
+  S3_BUCKET: veltrix-m3-artifacts-864046983878

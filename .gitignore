@@ -41,3 +41,6 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# Personal working notes (Member 3 guide)
+MEMBER3_GUIDE.md

@@ -1,0 +1,34 @@
+{{- if .Values.deployment.enabled }}
+{{- range $name := list "backend" "frontend" }}
+{{- $c := index $.Values $name }}
+{{- if and $c.enabled $c.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: veltrix-{{ $name }}-{{ $.Values.color }}
+  labels:
+    {{- include "veltrix.labels" (dict "root" $ "component" $name) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: veltrix-{{ $name }}-{{ $.Values.color }}
+  minReplicas: {{ $c.hpa.minReplicas }}
+  maxReplicas: {{ $c.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $c.hpa.cpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $c.hpa.memoryUtilization }}
+{{- end }}
+{{- end }}
+{{- end }}

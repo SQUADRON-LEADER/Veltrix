@@ -1,0 +1,33 @@
+{{- if .Values.stable.enabled }}
+{{- include "veltrix.validate" . }}
+{{- $names := dict "backend" "veltrix-service" "frontend" "veltrix-frontend" }}
+{{- range $name := list "backend" "frontend" }}
+{{- $c := index $.Values $name }}
+{{- if $c.enabled }}
+---
+# Stable Service: its selector is the only thing that decides which color receives traffic.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ index $names $name }}
+  labels:
+    app: veltrix
+    component: {{ $name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+  annotations:
+    veltrix.io/active-color: {{ $.Values.stable.activeColor | quote }}
+spec:
+  type: {{ $.Values.stable.type }}
+  ports:
+    - name: http
+      port: {{ $c.port }}
+      targetPort: {{ $c.port }}
+      protocol: TCP
+      {{- if eq $.Values.stable.type "NodePort" }}
+      nodePort: {{ index $.Values.stable.nodePorts $name }}
+      {{- end }}
+  selector:
+    {{- include "veltrix.selectorLabels" (dict "component" $name "env" $.Values.stable.activeColor) | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

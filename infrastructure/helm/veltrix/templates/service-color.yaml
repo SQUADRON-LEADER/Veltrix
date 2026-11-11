@@ -1,0 +1,24 @@
+{{- if .Values.deployment.enabled }}
+{{- range $name := list "backend" "frontend" }}
+{{- $c := index $.Values $name }}
+{{- if $c.enabled }}
+---
+# Per-color Service: lets you smoke-test the idle color before switching traffic.
+apiVersion: v1
+kind: Service
+metadata:
+  name: veltrix-{{ $name }}-{{ $.Values.color }}
+  labels:
+    {{- include "veltrix.labels" (dict "root" $ "component" $name) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ $c.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "veltrix.selectorLabels" (dict "component" $name "env" $.Values.color) | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

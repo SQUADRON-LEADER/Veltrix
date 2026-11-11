@@ -1,5 +1,7 @@
 const express = require("express");
 const repoController = require("../controllers/repoController");
+const uploadController = require("../controllers/uploadController");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const repoRouter = express.Router();
 
@@ -25,6 +27,10 @@ repoRouter.get("/repo/name/:name", repoController.fetchRepositoryByName);
 repoRouter.put("/update/:id", repoController.updateRepositoryById);
 repoRouter.delete("/delete/:id", repoController.deleteRepositoryById);
 repoRouter.patch("/toggle/:id", repoController.toggleVisibilityById);
+
+// 4b. S3 pre-signed object URLs (owner only). Must come before the generic 2-segment routes.
+repoRouter.post("/:id/upload-url", authMiddleware, uploadController.createUploadUrl);
+repoRouter.get("/:id/download-url", authMiddleware, uploadController.createDownloadUrl);
 
 // 5. 3-Segment Repository sub-resource routes
 repoRouter.get("/:owner/:name/files", repoController.getRepoFiles);

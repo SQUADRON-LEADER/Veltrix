@@ -1,0 +1,14 @@
+{{- if .Values.deployment.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: veltrix-config-{{ .Values.color }}
+  labels:
+    {{- include "veltrix.labels" (dict "root" . "component" "config") | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{- if ne (toString $value) "" }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

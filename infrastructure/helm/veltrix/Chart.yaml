@@ -1,0 +1,6 @@
+apiVersion: v2
+name: veltrix
+description: Veltrix backend and frontend with blue-green releases (one Helm release per color plus a router release that owns the stable Services)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

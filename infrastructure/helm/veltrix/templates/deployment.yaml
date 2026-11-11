@@ -1,0 +1,125 @@
+{{- if .Values.deployment.enabled }}
+{{- range $name := list "backend" "frontend" }}
+{{- $c := index $.Values $name }}
+{{- if $c.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veltrix-{{ $name }}-{{ $.Values.color }}
+  labels:
+    {{- include "veltrix.labels" (dict "root" $ "component" $name) | nindent 4 }}
+spec:
+  {{- if not $c.hpa.enabled }}
+  replicas: {{ $c.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "veltrix.selectorLabels" (dict "component" $name "env" $.Values.color) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "veltrix.labels" (dict "root" $ "component" $name) | nindent 8 }}
+      annotations:
+        checksum/config: {{ toYaml $.Values.config | sha256sum }}
+    spec:
+      serviceAccountName: veltrix-{{ $.Values.color }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: "{{ required (printf "%s.image.repository is required" $name) $c.image.repository }}:{{ required (printf "%s.image.tag is required (use the Git SHA)" $name) $c.image.tag }}"
+          imagePullPolicy: {{ $c.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $c.port }}
+              protocol: TCP
+          {{- if eq $name "backend" }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+          envFrom:
+            - configMapRef:
+                name: veltrix-config-{{ $.Values.color }}
+          env:
+            - name: PORT
+              value: {{ $c.port | quote }}
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ $.Values.secretKeys.mongodbUri }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ $.Values.secretKeys.jwtSecret }}
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ $.Values.secretKeys.jwtSecret }}
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ $.Values.secretKeys.redisUrl }}
+                  optional: true
+            {{- with $.Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if $.Values.docdbCa.enabled }}
+          volumeMounts:
+            - name: docdb-ca
+              mountPath: {{ $.Values.docdbCa.mountPath }}
+              readOnly: true
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          {{- else }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- end }}
+          resources:
+            {{- toYaml $c.resources | nindent 12 }}
+      {{- if and (eq $name "backend") $.Values.docdbCa.enabled }}
+      volumes:
+        - name: docdb-ca
+          configMap:
+            name: {{ $.Values.docdbCa.configMapName }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

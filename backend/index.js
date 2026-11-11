@@ -14,6 +14,8 @@ const bodyParser = require("body-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 const mainRouter = require("./routes/main.router");
+const attachRedisAdapter = require("./config/redis-adapter");
+const { setIO } = require("./config/realtime");
 
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
@@ -121,6 +123,12 @@ function startServer() {
       methods: ["GET", "POST"],
     },
   });
+
+  setIO(io);
+  // Not awaited: the API keeps serving if Redis is unreachable. No-op without REDIS_URL.
+  attachRedisAdapter(io).catch((err) =>
+    console.error("Redis adapter disabled:", err.message)
+  );
 
   io.on("connection", (socket) => {
     socket.on("joinRoom", (userID) => {

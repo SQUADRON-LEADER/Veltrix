@@ -1,0 +1,8 @@
+# Local rehearsal on a kind cluster: images are loaded with `kind load docker-image`,
+# the frontend is skipped, and nothing is pulled from ECR.
+backend:
+  image:
+    repository: veltrix-backend
+    pullPolicy: Never
+frontend:
+  enabled: false

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Repository = require("../models/repoModel");
 const Issue = require("../models/issueModel");
+const { emitToRoom } = require("../config/realtime");
 
 async function listIssues(req, res) {
   const { owner, repo } = req.params;
@@ -69,6 +70,13 @@ async function createIssue(req, res) {
     if (mongoose.connection.readyState === 1) {
       await newIssue.save().catch(() => {});
     }
+
+    // Real-time fan-out; reaches clients on other replicas when the Redis adapter is enabled.
+    emitToRoom(newIssue.owner, "issue:created", {
+      title: newIssue.title,
+      repo: newIssue.repoName,
+      number: newIssue.number,
+    });
 
     res.status(201).json({ issue: newIssue, message: "Issue created" });
   } catch (err) {

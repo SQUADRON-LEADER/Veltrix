@@ -1,0 +1,84 @@
+# Veltrix chart defaults.
+#
+# Blue-green model (one namespace, three Helm releases):
+#   veltrix-blue    color=blue   -> Deployments/Services/HPAs suffixed "-blue"
+#   veltrix-green   color=green  -> Deployments/Services/HPAs suffixed "-green"
+#   veltrix-router  deployment.enabled=false, stable.enabled=true
+#                   -> the stable Services; stable.activeColor picks the live color
+# Switching traffic or rolling back = changing stable.activeColor on the router release.
+
+# Which color this release deploys: blue | green
+color: blue
+
+# Render the color-specific workload (Deployment, Service, HPA, ConfigMap, ServiceAccount).
+# Set to false for the router release.
+deployment:
+  enabled: true
+
+# Stable, color-agnostic Services. Enable only in the router release.
+stable:
+  enabled: false
+  activeColor: blue
+  type: NodePort
+  nodePorts:
+    backend: 30080
+    frontend: 30081
+
+# Secret that already exists in the namespace. The chart never creates or stores credentials.
+existingSecret: veltrix-secrets
+secretKeys:
+  mongodbUri: mongodb-uri
+  jwtSecret: jwt-secret
+  redisUrl: redis-url   # optional; the backend ignores REDIS_URL when it is absent
+
+# Non-secret environment (ConfigMap). Leave S3_BUCKET empty to use the application default.
+config:
+  NODE_ENV: production
+  AWS_REGION: us-east-1
+  S3_BUCKET: ""
+
+# Mount the Amazon DocumentDB CA bundle (global-bundle.pem) from an existing ConfigMap
+# so the connection string can use tlsCAFile=/etc/docdb/global-bundle.pem.
+docdbCa:
+  enabled: false
+  configMapName: docdb-ca
+  mountPath: /etc/docdb
+
+extraEnv: []
+imagePullSecrets: []
+
+backend:
+  enabled: true
+  image:
+    repository: 864046983878.dkr.ecr.us-east-1.amazonaws.com/veltrix-backend
+    tag: ""             # required when deployment.enabled; use the Git SHA, never "latest"
+    pullPolicy: IfNotPresent
+  port: 5000            # matches the Dockerfile, Compose, ALB target group and security group
+  replicaCount: 2       # ignored when hpa.enabled
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    cpuUtilization: 70
+    memoryUtilization: 80
+
+frontend:
+  enabled: true
+  image:
+    repository: 864046983878.dkr.ecr.us-east-1.amazonaws.com/veltrix-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  port: 80
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    cpuUtilization: 70
+    memoryUtilization: 80
