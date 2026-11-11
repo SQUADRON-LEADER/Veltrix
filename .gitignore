@@ -4,6 +4,9 @@
 .env.*
 !.env.example
 
+# Member implementation guides (local notes, not for repo)
+MEMBER3_IMPLEMENTATION_GUIDE.md
+
 # Node dependencies
 node_modules/
 **/node_modules/
