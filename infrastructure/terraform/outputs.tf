@@ -22,3 +22,13 @@ output "k8s_master_instance_id" {
   description = "Kubernetes Master EC2 Instance ID"
   value       = aws_instance.k8s_master.id
 }
+
+output "backend_ecr_repository_url" {
+  description = "Target Amazon ECR URL for backend container images"
+  value       = aws_ecr_repository.veltrix_backend.repository_url
+}
+
+output "frontend_ecr_repository_url" {
+  description = "Target Amazon ECR URL for frontend container images"
+  value       = aws_ecr_repository.veltrix_frontend.repository_url
+}
