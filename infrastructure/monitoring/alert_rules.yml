@@ -1,0 +1,32 @@
+# Prometheus Alerting Rules for Veltrix Cluster
+# Domain: Observability, SRE & Alert Management
+
+groups:
+  - name: veltrix_kubernetes_alerts
+    rules:
+      - alert: NodeHighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Node CPU utilization exceeds 85% on {{ $labels.instance }}"
+          description: "Instance CPU saturation detected above 85% sustained over 2 minutes."
+
+      - alert: PodFrequentRestarts
+        expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash-looping"
+          description: "Pod is restarting more than 2 times per minute in the last 15 minutes."
+
+      - alert: BackendServiceLatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Veltrix API 95th percentile response latency > 1.5 seconds"
+          description: "API p95 latency is exceeding SLA threshold of 1500ms."
