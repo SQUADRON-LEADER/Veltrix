@@ -30,11 +30,17 @@
         name: containerd
         state: present
 
-    - name: Enable and start containerd daemon
+    - name: Ensure containerd service is actively running and responding
+      command: ctr version
+      register: ctr_check
+      changed_when: false
+      failed_when: ctr_check.rc != 0
+
+  handlers:
+    - name: restart containerd
       systemd:
         name: containerd
-        enabled: yes
-        state: started
+        state: restarted
 
     - name: Configure kernel parameters for Kubernetes networking (Flannel)
       sysctl:
